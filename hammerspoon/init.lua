@@ -3,7 +3,7 @@
 local inputEnglish = 'com.apple.keylayout.ABC'
 
 function escapeWithEnglishInput()
-  local allowApplications = {'PyCharm', 'GoLand', 'IntelliJ IDEA', 'iTerm2'}
+  local allowApplications = {'PyCharm', 'GoLand', 'IntelliJ IDEA', 'iTerm2', 'Google Chrome'}
   local allowApplicationsTable = {}
   for i, v in ipairs(allowApplications) do
     allowApplicationsTable[v] = true
