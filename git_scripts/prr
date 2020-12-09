@@ -1,0 +1,7 @@
+#!/usr/local/bin/zsh
+
+CURRENT_BRANCH_NAME=`git symbolic-ref --short HEAD`;
+ROOT_GIT_PATH=`git rev-parse --show-toplevel`
+PROJECT_NAME=`basename $ROOT_GIT_PATH`
+
+open "https://github.com/banksalad/$PROJECT_NAME/compare/$CURRENT_BRANCH_NAME?expand=1"
