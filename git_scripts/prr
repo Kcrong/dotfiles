@@ -1,7 +1,6 @@
-#!/usr/local/bin/zsh
+#!/bin/zsh
 
 CURRENT_BRANCH_NAME=`git symbolic-ref --short HEAD`;
-ROOT_GIT_PATH=`git rev-parse --show-toplevel`
-PROJECT_NAME=`basename $ROOT_GIT_PATH`
+REMOTE_PATH=`git config --get remote.origin.url | sed -r 's/.*(\@|\/\/)(.*)(\:|\/)([^:\/]*)\/([^\/\.]*)\.git/https:\/\/\2\/\4\/\5/'`
 
-open "https://github.com/banksalad/$PROJECT_NAME/compare/$CURRENT_BRANCH_NAME?expand=1"
+open "$REMOTE_PATH/compare/$CURRENT_BRANCH_NAME?expand=1"
