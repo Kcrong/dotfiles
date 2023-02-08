@@ -18,6 +18,30 @@
                 },
                 "rules": [
                     {
+                        "description": "Cmd+8 to Escape",
+                        "manipulators": [
+                            {
+                                "type": "basic",
+                                "from": {
+                                    "key_code": "8",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "command"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "escape"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
                         "description": "Simple Vi Mode v3 (rev 3)",
                         "manipulators": [
                             {
