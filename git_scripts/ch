@@ -2,4 +2,3 @@
 # Copy latest git commit hash
   
 git rev-parse --short HEAD | pbcopy
-
