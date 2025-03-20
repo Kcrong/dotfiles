@@ -1,0 +1,117 @@
+#!/bin/zsh
+
+git_main_branch () {
+	command git rev-parse --git-dir &> /dev/null || return
+	local ref
+	for ref in refs/{heads,remotes/{origin,upstream}}/{main,trunk,mainline,default,stable,master}
+	do
+		if command git show-ref -q --verify $ref
+		then
+			echo ${ref:t}
+			return 0
+		fi
+	done
+	echo master
+	return 1
+}
+
+# Prompt templates
+TITLE_PROMPT_TEMPLATE='I will provide a git diff. Generate a PR title, following the conventional commit message format (fix, feat, BREAKING CHANGE). The current branch is {CURRENT_BRANCH}.
+
+Format the PR title as:
+PR_TYPE({CURRENT_BRANCH}): PR_TITLE
+
+Example:
+If the current branch is STD-2, the output should be:
+feat(STD-2): Add a new endpoint
+
+Respond with only the PR title, without any additional text.'
+
+DESCRIPTION_PROMPT_TEMPLATE='I will provide git diff, Write me a PR description in markdown code.
+
+PR description should be CONCISE, and enumerate with `-`.
+
+The PR title must have title itself only. Do not add any other stuff.
+
+The PR description must follow the below format. (Refer three section below)
+## What
+## Why
+## Test'
+
+# Get git diff
+DIFF=$(git diff origin/$(git_main_branch))
+
+# github token
+GITHUB_TOKEN=$(gh auth token)
+
+# Replace {CURRENT_BRANCH} with actual branch name
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+TITLE_PROMPT=$(echo "$TITLE_PROMPT_TEMPLATE" | sed "s/{CURRENT_BRANCH}/$CURRENT_BRANCH/g")
+
+# Escape the content for JSON
+ESCAPED_TITLE_PROMPT=$(echo "$TITLE_PROMPT" | jq -Rsa .)
+ESCAPED_DESCRIPTION_PROMPT=$(echo "$DESCRIPTION_PROMPT_TEMPLATE" | jq -Rsa .)
+ESCAPED_DIFF=$(echo "$DIFF" | jq -Rsa .)
+
+# Create JSON payload using jq
+TITLE_PAYLOAD=$(jq -n \
+  --arg title "$ESCAPED_TITLE_PROMPT" \
+  --arg diff "$ESCAPED_DIFF" \
+  '{
+    messages: [
+      {
+        role: "system",
+        content: $title
+      },
+      {
+        role: "user",
+        content: $diff
+      }
+    ],
+    temperature: 0.5
+  }')
+
+# Send request to GitHub Copilot API and extract PR title
+PR_TITLE=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$TITLE_PAYLOAD" | jq -r '.choices[0].message.content')
+
+
+# Create JSON payload using jq
+DESCRIPTION_PAYLOAD=$(jq -n \
+  --arg title "$ESCAPED_DESCRIPTION_PROMPT" \
+  --arg diff "$ESCAPED_DIFF" \
+  '{
+    messages: [
+      {
+        role: "system",
+        content: $title
+      },
+      {
+        role: "user",
+        content: $diff
+      }
+    ],
+    temperature: 0.5
+  }')
+
+# Send request to GitHub Copilot API and extract PR title
+PR_DESCRIPTION=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$DESCRIPTION_PAYLOAD" | jq -r '.choices[0].message.content')
+
+# Check if PR exists
+EXISTING_PR=$(gh pr view --json number 2>/dev/null)
+
+if [ $? -eq 0 ]; then
+    # Update existing PR
+    PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+    echo "Updating existing PR #$PR_NUMBER..."
+    gh pr edit "$PR_NUMBER" --title "$PR_TITLE" --body "$PR_DESCRIPTION"
+else
+    # Create new PR
+    echo "Creating new PR..."
+    gh pr create --title "$PR_TITLE" --body "$PR_DESCRIPTION" -a @me --base $(git_main_branch) --head $CURRENT_BRANCH
+fi
