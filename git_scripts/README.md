@@ -4,6 +4,9 @@
 ```
 go.sum -diff
 *_mock.go -diff
+package-lock.json -diff
+pnpm-lock.yaml -diff
+*.svg -diff
 ```
 
 ### $HOME/.gitignore
