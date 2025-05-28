@@ -1,0 +1,208 @@
+#!/bin/bash
+
+# Initialize verbose flag
+VERBOSE=0
+
+# Function to log messages based on verbose flag
+log() {
+    if [ "$VERBOSE" -eq 1 ]; then
+        echo "[DEBUG] $1"
+    fi
+}
+
+# Check if required tools are available
+command -v node >/dev/null 2>&1 || { echo "Error: node is required but not installed."; exit 1; }
+command -v npm >/dev/null 2>&1 || { echo "Error: npm is required but not installed."; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed."; exit 1; }
+
+# Function to validate version format (basic semver check)
+validate_version() {
+    local version=$1
+    log "Validating version format: $version"
+    if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+        echo "Error: Invalid version format: $version"
+        exit 1
+    fi
+    log "Version format is valid"
+}
+
+# Function to compare versions
+compare_versions() {
+    local version1=$1
+    local version2=$2
+    local op=$3
+    
+    # Remove any leading v
+    version1=${version1#v}
+    version2=${version2#v}
+    
+    # Compare versions using sort -V
+    case $op in
+        ">=")
+            # If version1 is greater than or equal to version2, it will be sorted after version2
+            [ "$(printf "%s\n%s" "$version1" "$version2" | sort -V | head -n1)" = "$version2" ]
+            ;;
+        ">")
+            # If version1 is greater than version2, it will be sorted after version2 and not equal
+            [ "$(printf "%s\n%s" "$version1" "$version2" | sort -V | head -n1)" = "$version2" ] && [ "$version1" != "$version2" ]
+            ;;
+        "<=")
+            # If version1 is less than or equal to version2, it will be sorted before version2
+            [ "$(printf "%s\n%s" "$version1" "$version2" | sort -V | head -n1)" = "$version1" ]
+            ;;
+        "<")
+            # If version1 is less than version2, it will be sorted before version2 and not equal
+            [ "$(printf "%s\n%s" "$version1" "$version2" | sort -V | head -n1)" = "$version1" ] && [ "$version1" != "$version2" ]
+            ;;
+        *)
+            echo "Error: Invalid operator: $op"
+            exit 1
+            ;;
+    esac
+}
+
+# Parse command line arguments
+while getopts "v" opt; do
+    case $opt in
+        v)
+            VERBOSE=1
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Shift the options out of the argument list
+shift $((OPTIND-1))
+
+# Parse input arguments
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 [-v] parent_pkg[<parent-range>] child_pkg<op><target_ver>"
+    echo "       $0 [-v] parent_pkg<op><parent-ver> child_pkg<op><target_ver>"
+    echo "       $0 [-v] parent_pkg child_pkg<op><target_ver>"
+    echo "Options:"
+    echo "  -v    Enable verbose logging"
+    exit 1
+fi
+
+# Parse parent package and range
+parent_input=$1
+log "Parsing parent package input: $parent_input"
+
+# Try parsing with operator first
+if [[ $parent_input =~ ^([a-zA-Z0-9@._-]+)([<>=]+)([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?)$ ]]; then
+    parent_pkg="${BASH_REMATCH[1]}"
+    parent_op="${BASH_REMATCH[2]}"
+    parent_ver="${BASH_REMATCH[3]}"
+    log "Parent package: $parent_pkg"
+    log "Parent operator: $parent_op"
+    log "Parent version: $parent_ver"
+# Try parsing with square brackets
+elif [[ $parent_input =~ ^([^[]+)(\[(.*)\])?$ ]]; then
+    parent_pkg="${BASH_REMATCH[1]}"
+    parent_range="${BASH_REMATCH[3]}"
+    log "Parent package: $parent_pkg"
+    if [ -n "$parent_range" ]; then
+        log "Parent range: $parent_range"
+    else
+        log "No parent range specified"
+    fi
+# If no version specified at all, use the package name as is
+else
+    parent_pkg="$parent_input"
+    parent_op=""
+    parent_ver=""
+    log "Parent package: $parent_pkg (no version specified)"
+fi
+
+# Parse child package, operator and target version
+child_input=$2
+log "Parsing child package input: $child_input"
+if [[ $child_input =~ ^([a-zA-Z0-9@._-]+)([<>=]+)([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?)$ ]]; then
+    child_pkg="${BASH_REMATCH[1]}"
+    op="${BASH_REMATCH[2]}"
+    target_ver="${BASH_REMATCH[3]}"
+    log "Child package: $child_pkg"
+    log "Operator: $op"
+    log "Target version: $target_ver"
+else
+    echo "Error: Invalid child package format"
+    exit 1
+fi
+
+# Validate target version
+validate_version "$target_ver"
+
+# Get all versions of parent package
+echo "Fetching versions for $parent_pkg..."
+log "Querying npm registry for $parent_pkg versions..."
+versions=$(npm view "$parent_pkg" versions --json 2>/dev/null)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to fetch versions for $parent_pkg"
+    exit 1
+fi
+log "Successfully fetched version data from npm registry"
+versions=$(echo "$versions" | jq -r '.[]' | sort -V)
+version_count=$(echo "$versions" | wc -l | tr -d ' ')
+log "Found $version_count versions of $parent_pkg"
+
+# Filter versions by parent range if specified
+if [ -n "$parent_op" ] && [ -n "$parent_ver" ]; then
+    log "Filtering versions by parent range: $parent_op$parent_ver"
+    filtered_versions=""
+    for version in $versions; do
+        if compare_versions "$version" "$parent_ver" "$parent_op"; then
+            filtered_versions="$filtered_versions $version"
+        fi
+    done
+    versions=$filtered_versions
+    filtered_count=$(echo "$versions" | wc -w)
+    log "Filtered to $filtered_count versions"
+fi
+
+# Process each version
+for version in $versions; do
+    echo "scanning $parent_pkg@$version"
+    log "Checking dependencies for $parent_pkg@$version"
+    
+    # Get child package version
+    log "Querying npm registry for $child_pkg dependency in $parent_pkg@$version..."
+    child_ver=$(npm view "$parent_pkg@$version" dependencies."$child_pkg" 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        log "Failed to fetch dependency information for $parent_pkg@$version"
+        continue
+    fi
+    
+    # Check if child package exists
+    if [ -z "$child_ver" ]; then
+        log "Child package $child_pkg not found in dependencies"
+        echo "result parent=$parent_pkg version=$version status=removed"
+        exit 0
+    fi
+    
+    log "Found child package version: $child_ver"
+    
+    # Remove ^ or ~ from child version if present
+    child_ver=$(echo "$child_ver" | sed 's/[\^~]//g')
+    log "Normalized child version: $child_ver"
+    
+    # Check if child version satisfies the condition
+    if compare_versions "$child_ver" "$target_ver" "$op"; then
+        log "Version $child_ver satisfies condition $op$target_ver"
+        case $op in
+            ">="|">")
+                echo "result parent=$parent_pkg version=$version status=>=target"
+                ;;
+            "<="|"<")
+                echo "result parent=$parent_pkg version=$version status=<=target"
+                ;;
+        esac
+        exit 0
+    fi
+done
+
+log "No matching version found after checking all versions"
+echo "No matching version found"
+exit 1 
