@@ -42,7 +42,7 @@ GITHUB_TOKEN=$(gh auth token)
 if [ -n "$JIRA_INFO" ]; then
 	TITLE_PROMPT="I will provide a git diff and Jira ticket information.
 Generate a PR title, following the conventional commit message format (fix, feat, BREAKING CHANGE).
-The current branch is $CURRENT_BRANCH.
+The current branch is \`$CURRENT_BRANCH\`.
 
 Use Jira ticket details to accurately summarize the change.
 
@@ -77,7 +77,7 @@ else
 	TITLE_PROMPT="I will provide a git diff.
 
 Generate a PR title, following the conventional commit message format (fix, feat, BREAKING CHANGE).
-The current branch is $CURRENT_BRANCH.
+The current branch is \`$CURRENT_BRANCH\`.
 
 Format the PR title as:
 PR_TYPE($CURRENT_BRANCH): PR_TITLE
@@ -108,6 +108,10 @@ fi
 ESCAPED_TITLE_PROMPT=$(echo "$TITLE_PROMPT" | jq -Rsa .)
 ESCAPED_DESCRIPTION_PROMPT=$(echo "$DESCRIPTION_PROMPT" | jq -Rsa .)
 ESCAPED_USER_PROMPT=$(echo "$USER_PROMPT" | jq -Rsa .)
+
+echo $ESCAPED_TITLE_PROMPT
+
+echo $ESCAPED_DESCRIPTION_PROMPT
 
 TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_USER_PROMPT" '{
   model: "gpt-4o-mini",
