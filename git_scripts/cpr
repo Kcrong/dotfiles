@@ -21,10 +21,10 @@ cleanup_text() {
 		sed -E 's/[ ]{2,}/ /g'
 }
 
-# Check if --create option was passed
-CREATE_PR=false
-if [[ "$1" == "--create" ]]; then
-	CREATE_PR=true
+# Check if --upsert option was passed
+UPSERT_PR=false
+if [[ "$1" == "--upsert" ]]; then
+	UPSERT_PR=true
 fi
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -34,18 +34,12 @@ fi
 
 # Get Jira info (ignore errors)
 JIRA_INFO=$(jira issue view "$CURRENT_BRANCH" --plain 2>/dev/null)
-JIRA_AVAILABLE=true
-if [ $? -ne 0 ]; then
-	JIRA_INFO=""
-	JIRA_AVAILABLE=false
-fi
-
 JIRA_INFO=$(echo "$JIRA_INFO" | cleanup_text)
 DIFF=$(git diff -w --staged origin/"$(git_main_branch)")
 GITHUB_TOKEN=$(gh auth token)
 
 # Prompt templates
-if [ "$JIRA_AVAILABLE" = true ]; then
+if [ -n "$JIRA_INFO" ]; then
 	TITLE_PROMPT="I will provide a git diff and Jira ticket information.
 Generate a PR title, following the conventional commit message format (fix, feat, BREAKING CHANGE).
 The current branch is $CURRENT_BRANCH.
@@ -55,24 +49,30 @@ Use Jira ticket details to accurately summarize the change.
 Format the PR title as:
 PR_TYPE($CURRENT_BRANCH): PR_TITLE
 
-Respond with only the PR title.
+Respond with only the PR title."
 
-JIRA TICKET INFORMATION:
-$JIRA_INFO"
+	DESCRIPTION_PROMPT="I will provide git diff and Jira ticket information. Write a concise and professional Pull Request description in markdown format.
 
-	DESCRIPTION_PROMPT="I will provide git diff and Jira ticket information. Write a PR description in markdown format.
+Use Jira ticket details to accurately summarize the change.
 
-Group the changes into appropriate categories concisely under \"What\".
-Use the Jira ticket details to clearly describe necessity under \"Why\".
+Do NOT include any title, heading, H1, or introductory text.
+Only output two H2 sections: '## What' and '## Why'.
+
+Example format:
 
 ## What
-- Example change
+- List of grouped, concise changes
 
 ## Why
-Concise explanation based on Jira ticket
+- Clear explanation of the purpose
+"
 
-JIRA TICKET INFORMATION:
-$JIRA_INFO"
+	USER_PROMPT="Jira ticket information:
+\`\`\`$JIRA_INFO\`\`\`
+
+git diff:
+\`\`\`$DIFF\`\`\`"
+
 else
 	TITLE_PROMPT="I will provide a git diff.
 
@@ -84,29 +84,35 @@ PR_TYPE($CURRENT_BRANCH): PR_TITLE
 
 Respond with only the PR title."
 
-	DESCRIPTION_PROMPT="I will provide git diff.
+	DESCRIPTION_PROMPT="I will provide a git diff. Write a concise and professional Pull Request description in markdown format.
 
-Write a PR description in markdown format.
+Do NOT include any title, heading, H1, or introductory text.
+Only output two H2 sections: '## What' and '## Why'.
 
-Group the changes into appropriate categories concisely under \"What\".
+Do not include any additional sections, summaries, or explanations outside of these two headers.
 
-Clearly summarize necessity under \"Why\".
+Example format:
 
 ## What
-- Example change
+- List of grouped, concise changes
 
 ## Why
-Concise explanation"
+- Clear explanation of the purpose
+"
+
+	USER_PROMPT="git diff:
+\`\`\`$DIFF\`\`\`"
+
 fi
 
 ESCAPED_TITLE_PROMPT=$(echo "$TITLE_PROMPT" | jq -Rsa .)
 ESCAPED_DESCRIPTION_PROMPT=$(echo "$DESCRIPTION_PROMPT" | jq -Rsa .)
-ESCAPED_DIFF=$(echo "$DIFF" | jq -Rsa .)
+ESCAPED_USER_PROMPT=$(echo "$USER_PROMPT" | jq -Rsa .)
 
-TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_DIFF" '{
+TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_USER_PROMPT" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
-  temperature: 0.5
+  temperature: 0.3
 }')
 
 PR_TITLE=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
@@ -114,10 +120,10 @@ PR_TITLE=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
 	-H "Content-Type: application/json" \
 	-d "$TITLE_PAYLOAD" | jq -r '.choices[0].message.content')
 
-DESCRIPTION_PAYLOAD=$(jq -n --arg title "$ESCAPED_DESCRIPTION_PROMPT" --arg diff "$ESCAPED_DIFF" '{
+DESCRIPTION_PAYLOAD=$(jq -n --arg title "$ESCAPED_DESCRIPTION_PROMPT" --arg diff "$ESCAPED_USER_PROMPT" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
-  temperature: 0.5
+  temperature: 0.3
 }')
 
 PR_DESCRIPTION=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
@@ -125,7 +131,7 @@ PR_DESCRIPTION=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions
 	-H "Content-Type: application/json" \
 	-d "$DESCRIPTION_PAYLOAD" | jq -r '.choices[0].message.content')
 
-if [ "$CREATE_PR" = true ]; then
+if [ "$UPSERT_PR" = true ]; then
 	EXISTING_PR=$(gh pr list --state open --head "$CURRENT_BRANCH" --json number -q '.[].number')
 	if [ -n "$EXISTING_PR" ]; then
 		echo "Updating existing PR #$EXISTING_PR..."
