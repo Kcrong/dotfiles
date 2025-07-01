@@ -21,10 +21,10 @@ cleanup_text() {
 		sed -E 's/[ ]{2,}/ /g'
 }
 
-# Check if --create option was passed
-CREATE_PR=false
-if [[ "$1" == "--create" ]]; then
-	CREATE_PR=true
+# Check if --upsert option was passed
+UPSERT_PR=false
+if [[ "$1" == "--upsert" ]]; then
+	UPSERT_PR=true
 fi
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -131,7 +131,7 @@ PR_DESCRIPTION=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions
 	-H "Content-Type: application/json" \
 	-d "$DESCRIPTION_PAYLOAD" | jq -r '.choices[0].message.content')
 
-if [ "$CREATE_PR" = true ]; then
+if [ "$UPSERT_PR" = true ]; then
 	EXISTING_PR=$(gh pr list --state open --head "$CURRENT_BRANCH" --json number -q '.[].number')
 	if [ -n "$EXISTING_PR" ]; then
 		echo "Updating existing PR #$EXISTING_PR..."
