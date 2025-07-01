@@ -1,0 +1,56 @@
+#!/bin/zsh
+
+# Prompt templates
+PROMPT='
+Act as a professional English-Korean translator.
+
+If I provide text in Korean, translate it into English.
+If I provide text in any other language, translate it into Korean.
+Do not repeat or comment on the original sentence—just provide the translation only.
+'
+
+tmpfile=$(mktemp)
+nvim -c 'startinsert' "$tmpfile"
+
+message=$(cat "$tmpfile")
+rm "$tmpfile"
+
+# Check if message is empty
+if [[ -z "$message" ]]; then
+  echo "No text provided. Exiting."
+  exit 0
+fi
+
+message="\`\`\`$message\`\`\`"
+
+# github token
+GITHUB_TOKEN=$(gh auth token)
+
+# Create JSON payload using jq
+COMMIT_PAYLOAD=$(jq -n \
+  --arg title "$PROMPT" \
+  --arg msg "$message" \
+  '{
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: $title
+      },
+      {
+        role: "user",
+        content: $msg
+      }
+    ],
+    temperature: 0.5
+  }')
+
+# Send request to GitHub Copilot API and extract PR title
+TRANSLATED=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$COMMIT_PAYLOAD" | jq -r '.choices[0].message.content')
+
+
+echo $TRANSLATED
+
