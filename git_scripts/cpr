@@ -109,10 +109,6 @@ ESCAPED_TITLE_PROMPT=$(echo "$TITLE_PROMPT" | jq -Rsa .)
 ESCAPED_DESCRIPTION_PROMPT=$(echo "$DESCRIPTION_PROMPT" | jq -Rsa .)
 ESCAPED_USER_PROMPT=$(echo "$USER_PROMPT" | jq -Rsa .)
 
-echo $ESCAPED_TITLE_PROMPT
-
-echo $ESCAPED_DESCRIPTION_PROMPT
-
 TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_USER_PROMPT" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
