@@ -1,6 +1,0 @@
-#!/bin/zsh
-
-CURRENT_BRANCH_NAME=`git symbolic-ref --short HEAD`;
-REMOTE_PATH=`git config --get remote.origin.url | sed -r 's/.*(\@|\/\/)(.*)(\:|\/)([^:\/]*)\/([^\/\.]*)\.git/https:\/\/\2\/\4\/\5/'`
-
-open "$REMOTE_PATH/compare/$CURRENT_BRANCH_NAME?expand=1"

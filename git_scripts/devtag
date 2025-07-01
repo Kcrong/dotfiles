@@ -1,3 +1,0 @@
-#!/bin/bash
-
-git tag dev-$(git rev-parse --abbrev-ref HEAD)-$(git rev-parse --short HEAD)
