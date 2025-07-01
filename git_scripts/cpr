@@ -86,7 +86,7 @@ Respond with only the PR title."
 
 	DESCRIPTION_PROMPT="I will provide git diff.
 
-Write a PR description in markdown format.
+Write a PR description in markdown format. DO NOT INCLUDE ANY OTHER H2 HEADERS.
 
 Group the changes into appropriate categories concisely under \"What\".
 
