@@ -34,18 +34,12 @@ fi
 
 # Get Jira info (ignore errors)
 JIRA_INFO=$(jira issue view "$CURRENT_BRANCH" --plain 2>/dev/null)
-JIRA_AVAILABLE=true
-if [ $? -ne 0 ]; then
-	JIRA_INFO=""
-	JIRA_AVAILABLE=false
-fi
-
 JIRA_INFO=$(echo "$JIRA_INFO" | cleanup_text)
 DIFF=$(git diff -w --staged origin/"$(git_main_branch)")
 GITHUB_TOKEN=$(gh auth token)
 
 # Prompt templates
-if [ "$JIRA_AVAILABLE" = true ]; then
+if [ -z "$JIRA_INFO" ]; then
 	TITLE_PROMPT="I will provide a git diff and Jira ticket information.
 Generate a PR title, following the conventional commit message format (fix, feat, BREAKING CHANGE).
 The current branch is $CURRENT_BRANCH.
@@ -55,24 +49,23 @@ Use Jira ticket details to accurately summarize the change.
 Format the PR title as:
 PR_TYPE($CURRENT_BRANCH): PR_TITLE
 
-Respond with only the PR title.
+Respond with only the PR title."
 
-JIRA TICKET INFORMATION:
-$JIRA_INFO"
+	DESCRIPTION_PROMPT="I will provide git diff and Jira ticket information. Write a concise and professional Pull Request description in markdown format.
 
-	DESCRIPTION_PROMPT="I will provide git diff and Jira ticket information. Write a PR description in markdown format.
+Use Jira ticket details to accurately summarize the change.
 
-Group the changes into appropriate categories concisely under \"What\".
-Use the Jira ticket details to clearly describe necessity under \"Why\".
+Do NOT include any title, heading, H1, or introductory text.
+Only output two H2 sections: '## What' and '## Why'.
+
+Example format:
 
 ## What
-- Example change
+- List of grouped, concise changes
 
 ## Why
-Concise explanation based on Jira ticket
-
-JIRA TICKET INFORMATION:
-$JIRA_INFO"
+- Clear explanation of the purpose
+"
 else
 	TITLE_PROMPT="I will provide a git diff.
 
@@ -84,19 +77,21 @@ PR_TYPE($CURRENT_BRANCH): PR_TITLE
 
 Respond with only the PR title."
 
-	DESCRIPTION_PROMPT="I will provide git diff.
+	DESCRIPTION_PROMPT="I will provide a git diff. Write a concise and professional Pull Request description in markdown format.
 
-Write a PR description in markdown format. DO NOT INCLUDE ANY OTHER H2 HEADERS.
+Do NOT include any title, heading, H1, or introductory text.
+Only output two H2 sections: '## What' and '## Why'.
 
-Group the changes into appropriate categories concisely under \"What\".
+Do not include any additional sections, summaries, or explanations outside of these two headers.
 
-Clearly summarize necessity under \"Why\".
+Example format:
 
 ## What
-- Example change
+- List of grouped, concise changes
 
 ## Why
-Concise explanation"
+- Clear explanation of the purpose
+"
 fi
 
 ESCAPED_TITLE_PROMPT=$(echo "$TITLE_PROMPT" | jq -Rsa .)
@@ -106,7 +101,7 @@ ESCAPED_DIFF=$(echo "$DIFF" | jq -Rsa .)
 TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_DIFF" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
-  temperature: 0.5
+  temperature: 0.3
 }')
 
 PR_TITLE=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
@@ -117,7 +112,7 @@ PR_TITLE=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
 DESCRIPTION_PAYLOAD=$(jq -n --arg title "$ESCAPED_DESCRIPTION_PROMPT" --arg diff "$ESCAPED_DIFF" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
-  temperature: 0.5
+  temperature: 0.3
 }')
 
 PR_DESCRIPTION=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
