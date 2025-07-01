@@ -39,7 +39,7 @@ DIFF=$(git diff -w --staged origin/"$(git_main_branch)")
 GITHUB_TOKEN=$(gh auth token)
 
 # Prompt templates
-if [ -z "$JIRA_INFO" ]; then
+if [ -n "$JIRA_INFO" ]; then
 	TITLE_PROMPT="I will provide a git diff and Jira ticket information.
 Generate a PR title, following the conventional commit message format (fix, feat, BREAKING CHANGE).
 The current branch is $CURRENT_BRANCH.
@@ -66,6 +66,13 @@ Example format:
 ## Why
 - Clear explanation of the purpose
 "
+
+	USER_PROMPT="Jira ticket information:
+\`\`\`$JIRA_INFO\`\`\`
+
+git diff:
+\`\`\`$DIFF\`\`\`"
+
 else
 	TITLE_PROMPT="I will provide a git diff.
 
@@ -92,13 +99,17 @@ Example format:
 ## Why
 - Clear explanation of the purpose
 "
+
+	USER_PROMPT="git diff:
+\`\`\`$DIFF\`\`\`"
+
 fi
 
 ESCAPED_TITLE_PROMPT=$(echo "$TITLE_PROMPT" | jq -Rsa .)
 ESCAPED_DESCRIPTION_PROMPT=$(echo "$DESCRIPTION_PROMPT" | jq -Rsa .)
-ESCAPED_DIFF=$(echo "$DIFF" | jq -Rsa .)
+ESCAPED_USER_PROMPT=$(echo "$USER_PROMPT" | jq -Rsa .)
 
-TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_DIFF" '{
+TITLE_PAYLOAD=$(jq -n --arg title "$ESCAPED_TITLE_PROMPT" --arg diff "$ESCAPED_USER_PROMPT" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
   temperature: 0.3
@@ -109,7 +120,7 @@ PR_TITLE=$(curl -s -X POST "https://api.githubcopilot.com/chat/completions" \
 	-H "Content-Type: application/json" \
 	-d "$TITLE_PAYLOAD" | jq -r '.choices[0].message.content')
 
-DESCRIPTION_PAYLOAD=$(jq -n --arg title "$ESCAPED_DESCRIPTION_PROMPT" --arg diff "$ESCAPED_DIFF" '{
+DESCRIPTION_PAYLOAD=$(jq -n --arg title "$ESCAPED_DESCRIPTION_PROMPT" --arg diff "$ESCAPED_USER_PROMPT" '{
   model: "gpt-4o-mini",
   messages: [{role: "system", content: $title}, {role: "user", content: $diff}],
   temperature: 0.3
