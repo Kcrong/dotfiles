@@ -1,0 +1,130 @@
+#!/bin/zsh
+
+# 디버깅을 위해 실행되는 모든 명령어를 출력하고, 오류 발생 시 즉시 스크립트를 중단합니다.
+# set -ex
+
+git_main_branch () {
+	command git rev-parse --git-dir &> /dev/null || return
+	local ref
+	for ref in refs/{heads,remotes/{origin,upstream}}/{main,trunk,mainline,default,stable,master}
+	do
+		if command git show-ref -q --verify "$ref"
+		then
+			echo "${ref:t}"
+			return 0
+		fi
+	done
+	echo master
+	return 1
+}
+
+function cleanup_text() {
+  sed $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' |
+  sed 's/[⭐🚧⌛👷🔑️💭🧵⏱️🔎🚀📦🏷️👀]//g' |
+  sed -E 's/\[38;5;[0-9]+m\[0m(\[38;5;[0-9]+m)?\s*\[38;5;[0-9]+m—+[^—]+—+\[m//g' |
+  sed -E 's/[ ]{2,}/ /g'
+}
+
+# Prompt templates
+PROMPT_TEMPLATE="
+I will provide git diff and jira ticket information(including comments). Generate PR title and PR description following for each formats. Do not include any other informations.
+
+# GUIDE
+## PR title
+PR title should follow the conventional commit message format (fix, feat, BREAKING CHANGE). The current branch is {CURRENT_BRANCH}.
+
+Format the PR title as:
+PR_TYPE({CURRENT_BRANCH}): PR_TITLE
+
+Example:
+If the current branch is STD-2, the output should be:
+feat(STD-2): Add a new endpoint
+
+
+## PR description
+Use markdown format. 
+The description should make reviewers to be able to understand what's underlying background/contexts of this Pull Request Changes. 
+Description should follow the format and principles below.
+
+### PR description Principles
+- Avoid vague expressions and include only specific content.
+- Minimize the use of terms like 'enhancement' and 'improvement' without specifying an object.
+
+### PR description Format
+The PR description must follow the below format. DO NOT ADD ANY OTHER H2 SECTIONS.
+When writing 'What', group the changes into appropriate categories instead of detailing each change individually and enumerate with '-'.
+When writing the 'Why', review the requirements (ticket description) and deduce the necessity of the changes.
+
+### PR description Example
+\`\`\`
+## What
+- Add DB_HOST value in config struct
+- Change host variable type to string
+## Why
+To create a new connection to the database
+\`\`\`
+
+# References
+## Jira ticket
+\`\`\`
+{JIRA_INFO}
+\`\`\`
+
+## Git diff
+\`\`\`
+{GIT_DIFF}
+\`\`\`
+"
+
+# --- 스크립트 실행 및 디버깅 시작 ---
+
+# 1. 메인 브랜치 이름 가져오기
+MAIN_BRANCH=$(git_main_branch)
+# echo "===== [DEBUG] Main branch: $MAIN_BRANCH ====="
+
+# 2. Git diff 정보 가져오기
+DIFF=$(git diff -w --ignore-space-change --staged origin/"$MAIN_BRANCH")
+# echo "===== [DEBUG] Git diff (첫 5줄):"
+# echo "$DIFF" | head -n 5
+# echo "====="
+
+# 3. 현재 브랜치 이름 가져오기
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# echo "===== [DEBUG] Current branch (변경 전): $CURRENT_BRANCH ====="
+
+# 4. 브랜치 이름에서 Jira 티켓 ID 추출
+if [[ $CURRENT_BRANCH =~ ([A-Za-z]+-[0-9]+) ]]; then
+  # zsh에서는 match 배열을 사용합니다.
+  CURRENT_BRANCH="${match[1]}"
+fi
+# echo "===== [DEBUG] Extracted Jira Key (변경 후): $CURRENT_BRANCH ====="
+
+
+# 5. Jira 티켓 정보 가져오기
+JIRA_INFO_RAW=$(jira issue view "$CURRENT_BRANCH" --plain --comments 5 2>/dev/null || echo "No Jira ticket found for $CURRENT_BRANCH")
+# echo "===== [DEBUG] Raw Jira info (정리 전):"
+# echo "$JIRA_INFO_RAW"
+# echo "====="
+
+# 6. Jira 텍스트 정리
+JIRA_INFO=$(echo "$JIRA_INFO_RAW" | cleanup_text)
+# echo "===== [DEBUG] Cleaned Jira info (정리 후):"
+# echo "$JIRA_INFO"
+# echo "====="
+
+
+# 7. GitHub 토큰 가져오기 (스크립트의 현재 로직에서는 사용되지 않음)
+GITHUB_TOKEN=$(gh auth token)
+# echo "===== [DEBUG] GitHub token loaded. ====="
+
+
+# 8. 최종 프롬프트 생성 (Zsh 파라미터 확장 기능 사용)
+# sed는 멀티라인 변수 치환에 취약하므로, 셸 내장 기능으로 안전하게 교체합니다.
+PROMPT=${PROMPT_TEMPLATE//\{CURRENT_BRANCH\}/$CURRENT_BRANCH}
+PROMPT=${PROMPT//\{JIRA_INFO\}/$JIRA_INFO}
+PROMPT=${PROMPT//\{GIT_DIFF\}/$DIFF}
+
+# echo "===== [DEBUG] Final prompt to be printed: ====="
+
+# 최종 결과 출력
+echo "$PROMPT"
