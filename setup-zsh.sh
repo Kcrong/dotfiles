@@ -24,9 +24,11 @@ ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
 PLUGIN_DIR="$HOME/plugins"
 BREW_PATH=$(brew --prefix)
 
-# 4. Ensure .zshrc exists
+# 4. Ensure .zshrc and its parent directory exist
+# This prevents 'No such file or directory' errors during grep
+mkdir -p "$(dirname "$ZSHRC")"
 if [ ! -f "$ZSHRC" ]; then
-    echo "Notice: .zshrc not found. Creating a new one at $ZSHRC"
+    echo "Notice: Creating new .zshrc at $ZSHRC"
     touch "$ZSHRC"
 fi
 
@@ -40,17 +42,18 @@ else
 fi
 
 # 6. Append configurations to .zshrc (Line-by-line idempotency check)
+# Using -s in grep to suppress 'No such file' errors just in case
 echo "Progress: Verifying and updating $ZSHRC..."
 
 # 1. fpath configurations
-if ! grep -Fq "# 1. fpath configurations" "$ZSHRC"; then
+if ! grep -Fsq "# 1. fpath configurations" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# 1. fpath configurations" >> "$ZSHRC"
     echo "fpath+=(\"$BREW_PATH/share/zsh/site-functions\")" >> "$ZSHRC"
 fi
 
 # 2. Pure
-if ! grep -Fq "# 2. Pure" "$ZSHRC"; then
+if ! grep -Fsq "# 2. Pure" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# 2. Pure" >> "$ZSHRC"
     echo "autoload -U promptinit; promptinit" >> "$ZSHRC"
@@ -58,7 +61,7 @@ if ! grep -Fq "# 2. Pure" "$ZSHRC"; then
 fi
 
 # 3. Auto completion
-if ! grep -Fq "# 3. Auto completion" "$ZSHRC"; then
+if ! grep -Fsq "# 3. Auto completion" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# 3. Auto completion" >> "$ZSHRC"
     echo "autoload -Uz compinit" >> "$ZSHRC"
@@ -66,14 +69,14 @@ if ! grep -Fq "# 3. Auto completion" "$ZSHRC"; then
 fi
 
 # 4. GIT plugin source
-if ! grep -Fq "# 4. GIT plugin source" "$ZSHRC"; then
+if ! grep -Fsq "# 4. GIT plugin source" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# 4. GIT plugin source" >> "$ZSHRC"
     echo "source \$HOME/plugins/git.plugin.zsh" >> "$ZSHRC"
 fi
 
 # Plugins (Auto-suggestions & Syntax-highlighting)
-if ! grep -Fq "# Plugins" "$ZSHRC"; then
+if ! grep -Fsq "# Plugins" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Plugins" >> "$ZSHRC"
     echo "source $BREW_PATH/share/zsh-autosuggestions/zsh-autosuggestions.zsh" >> "$ZSHRC"
