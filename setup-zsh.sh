@@ -24,7 +24,13 @@ ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
 PLUGIN_DIR="$HOME/plugins"
 BREW_PATH=$(brew --prefix)
 
-# 4. Download git.plugin.zsh
+# 4. Ensure .zshrc exists
+if [ ! -f "$ZSHRC" ]; then
+    echo "Notice: .zshrc not found. Creating a new one at $ZSHRC"
+    touch "$ZSHRC"
+fi
+
+# 5. Download git.plugin.zsh
 mkdir -p "$PLUGIN_DIR"
 if [ ! -f "$PLUGIN_DIR/git.plugin.zsh" ]; then
     echo "Progress: Downloading git.plugin.zsh..."
@@ -33,7 +39,7 @@ else
     echo "Notice: git.plugin.zsh already exists."
 fi
 
-# 5. Append configurations to .zshrc (Line-by-line idempotency check)
+# 6. Append configurations to .zshrc (Line-by-line idempotency check)
 echo "Progress: Verifying and updating $ZSHRC..."
 
 # 1. fpath configurations
