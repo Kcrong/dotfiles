@@ -16,8 +16,11 @@ fi
 
 # Install Brew Packages
 echo "Progress: Checking required Brew packages..."
-# Added neovim to the installation list
 brew install pure zsh-syntax-highlighting zsh-autosuggestions neovim
+
+# Install Brew Casks
+echo "Progress: Installing Brew Casks..."
+brew install --cask karabiner-elements rectangle
 
 # Set Paths and Variables
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
