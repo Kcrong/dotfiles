@@ -34,6 +34,7 @@ cat << 'EOF' > "$GITIGNORE"
 .idea/
 gitdiff
 .DS_Store
+.vscode/
 EOF
 
 # Setup .gitconfig
