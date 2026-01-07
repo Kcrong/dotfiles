@@ -1,11 +1,10 @@
 #!/bin/zsh
 
-# 1. Check and Install Homebrew
+# Check and Install Homebrew
 if ! command -v brew &> /dev/null; then
     echo "Progress: Homebrew not found. Starting installation..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     
-    # Load Homebrew environment for the current session after installation
     if [[ -f /opt/homebrew/bin/brew ]]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
     elif [[ -f /usr/local/bin/brew ]]; then
@@ -15,24 +14,30 @@ else
     echo "Notice: Homebrew is already installed."
 fi
 
-# 2. Install Brew Packages
+# Install Brew Packages
 echo "Progress: Checking required Brew packages..."
 brew install pure zsh-syntax-highlighting zsh-autosuggestions
 
-# 3. Set Paths and Variables
+# Set Paths and Variables
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
 PLUGIN_DIR="$HOME/plugins"
 BREW_PATH=$(brew --prefix)
 
-# 4. Ensure .zshrc and its parent directory exist
-# This prevents 'No such file or directory' errors during grep
+# Determine the correct LS alias based on the OS once during installation
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    LS_ALIAS_CMD="alias ls='ls -G'"
+else
+    LS_ALIAS_CMD="alias ls='ls --color=auto'"
+fi
+
+# Ensure .zshrc and its parent directory exist
 mkdir -p "$(dirname "$ZSHRC")"
 if [ ! -f "$ZSHRC" ]; then
     echo "Notice: Creating new .zshrc at $ZSHRC"
     touch "$ZSHRC"
 fi
 
-# 5. Download git.plugin.zsh
+# Download git.plugin.zsh
 mkdir -p "$PLUGIN_DIR"
 if [ ! -f "$PLUGIN_DIR/git.plugin.zsh" ]; then
     echo "Progress: Downloading git.plugin.zsh..."
@@ -41,41 +46,40 @@ else
     echo "Notice: git.plugin.zsh already exists."
 fi
 
-# 6. Append configurations to .zshrc (Line-by-line idempotency check)
-# Using -s in grep to suppress 'No such file' errors just in case
+# Append configurations to .zshrc
 echo "Progress: Verifying and updating $ZSHRC..."
 
-# 1. fpath configurations
-if ! grep -Fsq "# 1. fpath configurations" "$ZSHRC"; then
+# fpath configurations
+if ! grep -Fsq "# fpath configurations" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
-    echo "# 1. fpath configurations" >> "$ZSHRC"
+    echo "# fpath configurations" >> "$ZSHRC"
     echo "fpath+=(\"$BREW_PATH/share/zsh/site-functions\")" >> "$ZSHRC"
 fi
 
-# 2. Pure
-if ! grep -Fsq "# 2. Pure" "$ZSHRC"; then
+# Pure
+if ! grep -Fsq "# Pure" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
-    echo "# 2. Pure" >> "$ZSHRC"
+    echo "# Pure" >> "$ZSHRC"
     echo "autoload -U promptinit; promptinit" >> "$ZSHRC"
     echo "prompt pure" >> "$ZSHRC"
 fi
 
-# 3. Auto completion
-if ! grep -Fsq "# 3. Auto completion" "$ZSHRC"; then
+# Auto completion
+if ! grep -Fsq "# Auto completion" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
-    echo "# 3. Auto completion" >> "$ZSHRC"
+    echo "# Auto completion" >> "$ZSHRC"
     echo "autoload -Uz compinit" >> "$ZSHRC"
     echo "compinit" >> "$ZSHRC"
 fi
 
-# 4. GIT plugin source
-if ! grep -Fsq "# 4. GIT plugin source" "$ZSHRC"; then
+# GIT plugin source
+if ! grep -Fsq "# GIT plugin source" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
-    echo "# 4. GIT plugin source" >> "$ZSHRC"
+    echo "# GIT plugin source" >> "$ZSHRC"
     echo "source \$HOME/plugins/git.plugin.zsh" >> "$ZSHRC"
 fi
 
-# Plugins (Auto-suggestions & Syntax-highlighting)
+# Plugins
 if ! grep -Fsq "# Plugins" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Plugins" >> "$ZSHRC"
@@ -83,6 +87,13 @@ if ! grep -Fsq "# Plugins" "$ZSHRC"; then
     echo "source $BREW_PATH/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> "$ZSHRC"
 fi
 
+# LS colors and Aliases
+if ! grep -Fsq "# LS colors and Aliases" "$ZSHRC"; then
+    echo "" >> "$ZSHRC"
+    echo "# LS colors and Aliases" >> "$ZSHRC"
+    echo "export CLICOLOR=1" >> "$ZSHRC"
+    echo "$LS_ALIAS_CMD" >> "$ZSHRC"
+fi
+
 echo "---------------------------------------------------"
 echo "Done: Environment setup completed successfully."
-echo "Run 'source ~/.zshrc' or open a new terminal to apply changes."
