@@ -16,7 +16,8 @@ fi
 
 # Install Brew Packages
 echo "Progress: Checking required Brew packages..."
-brew install pure zsh-syntax-highlighting zsh-autosuggestions
+# Added neovim to the installation list
+brew install pure zsh-syntax-highlighting zsh-autosuggestions neovim
 
 # Set Paths and Variables
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
@@ -93,6 +94,20 @@ if ! grep -Fsq "# LS colors and Aliases" "$ZSHRC"; then
     echo "# LS colors and Aliases" >> "$ZSHRC"
     echo "export CLICOLOR=1" >> "$ZSHRC"
     echo "$LS_ALIAS_CMD" >> "$ZSHRC"
+fi
+
+# Editor configuration
+if ! grep -Fsq "# Editor configuration" "$ZSHRC"; then
+    echo "" >> "$ZSHRC"
+    echo "# Editor configuration" >> "$ZSHRC"
+    echo "export EDITOR=\"nvim\"" >> "$ZSHRC"
+fi
+
+# Neovim Aliases
+if ! grep -Fsq "# Neovim Aliases" "$ZSHRC"; then
+    echo "" >> "$ZSHRC"
+    echo "# Neovim Aliases" >> "$ZSHRC"
+    echo "alias vi=\"nvim\"" >> "$ZSHRC"
 fi
 
 echo "---------------------------------------------------"
