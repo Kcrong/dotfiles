@@ -29,9 +29,13 @@ BREW_PATH=$(brew --prefix)
 
 # Determine the correct LS alias based on the OS once during installation
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    LS_ALIAS_CMD="alias ls='ls -G'"
+    LS_ALIAS_CMD='alias ls="ls -GF"'
+    LL_ALIAS_CMD='alias ll="ls -lhGF"'
+    LA_ALIAS_CMD='alias la="ls -lahGF"'
 else
-    LS_ALIAS_CMD="alias ls='ls --color=auto'"
+    LS_ALIAS_CMD='alias ls="ls --color=auto -F"'
+    LL_ALIAS_CMD='alias ll="ls -lh --color=auto -F"'
+    LA_ALIAS_CMD='alias la="ls -lah --color=auto -F"'
 fi
 
 # Ensure .zshrc and its parent directory exist
@@ -53,6 +57,15 @@ fi
 # Append configurations to .zshrc
 echo "Progress: Verifying and updating $ZSHRC..."
 
+# History settings
+if ! grep -Fsq "# History settings" "$ZSHRC"; then
+    echo "" >> "$ZSHRC"
+    echo "# History settings" >> "$ZSHRC"
+    echo "HISTSIZE=100000" >> "$ZSHRC"
+    echo "SAVEHIST=100000" >> "$ZSHRC"
+    echo "HISTFILE=~/.zsh_history" >> "$ZSHRC"
+fi
+
 # fpath configurations
 if ! grep -Fsq "# fpath configurations" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
@@ -68,12 +81,16 @@ if ! grep -Fsq "# Pure" "$ZSHRC"; then
     echo "prompt pure" >> "$ZSHRC"
 fi
 
-# Auto completion
+# Auto completion with caching
 if ! grep -Fsq "# Auto completion" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Auto completion" >> "$ZSHRC"
     echo "autoload -Uz compinit" >> "$ZSHRC"
-    echo "compinit" >> "$ZSHRC"
+    echo 'if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then' >> "$ZSHRC"
+    echo "  compinit" >> "$ZSHRC"
+    echo "else" >> "$ZSHRC"
+    echo "  compinit -C" >> "$ZSHRC"
+    echo "fi" >> "$ZSHRC"
 fi
 
 # GIT plugin source
@@ -83,7 +100,7 @@ if ! grep -Fsq "# GIT plugin source" "$ZSHRC"; then
     echo "source \$HOME/plugins/git.plugin.zsh" >> "$ZSHRC"
 fi
 
-# Plugins
+# Plugins (syntax-highlighting must be last)
 if ! grep -Fsq "# Plugins" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Plugins" >> "$ZSHRC"
@@ -97,6 +114,8 @@ if ! grep -Fsq "# LS colors and Aliases" "$ZSHRC"; then
     echo "# LS colors and Aliases" >> "$ZSHRC"
     echo "export CLICOLOR=1" >> "$ZSHRC"
     echo "$LS_ALIAS_CMD" >> "$ZSHRC"
+    echo "$LL_ALIAS_CMD" >> "$ZSHRC"
+    echo "$LA_ALIAS_CMD" >> "$ZSHRC"
 fi
 
 # Editor configuration
@@ -117,9 +136,16 @@ fi
 if ! grep -Fsq "# Shell Options" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Shell Options" >> "$ZSHRC"
+    echo "setopt AUTO_CD" >> "$ZSHRC"
+    echo "setopt AUTO_PUSHD" >> "$ZSHRC"
+    echo "setopt PUSHD_IGNORE_DUPS" >> "$ZSHRC"
+    echo "setopt SHARE_HISTORY" >> "$ZSHRC"
+    echo "setopt APPEND_HISTORY" >> "$ZSHRC"
     echo "setopt HIST_IGNORE_ALL_DUPS" >> "$ZSHRC"
     echo "setopt HIST_FIND_NO_DUPS" >> "$ZSHRC"
-    echo "setopt AUTO_CD" >> "$ZSHRC"
+    echo "setopt HIST_REDUCE_BLANKS" >> "$ZSHRC"
+    echo "setopt EXTENDED_GLOB" >> "$ZSHRC"
+    echo "setopt NO_BEEP" >> "$ZSHRC"
 fi
 
 echo "---------------------------------------------------"
