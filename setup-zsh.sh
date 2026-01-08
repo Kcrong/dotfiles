@@ -119,6 +119,7 @@ if ! grep -Fsq "# Shell Options" "$ZSHRC"; then
     echo "# Shell Options" >> "$ZSHRC"
     echo "setopt HIST_IGNORE_ALL_DUPS" >> "$ZSHRC"
     echo "setopt HIST_FIND_NO_DUPS" >> "$ZSHRC"
+    echo "setopt AUTO_CD" >> "$ZSHRC"
 fi
 
 echo "---------------------------------------------------"
