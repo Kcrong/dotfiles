@@ -20,7 +20,7 @@ brew install pure zsh-syntax-highlighting zsh-autosuggestions neovim
 
 # Install Brew Casks
 echo "Progress: Installing Brew Casks..."
-brew install --cask karabiner-elements rectangle
+brew install --cask karabiner-elements rectangle iterm2 1password scroll-reverser
 
 # Set Paths and Variables
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
