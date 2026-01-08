@@ -113,5 +113,13 @@ if ! grep -Fsq "# Neovim Aliases" "$ZSHRC"; then
     echo "alias vi=\"nvim\"" >> "$ZSHRC"
 fi
 
+# Shell options
+if ! grep -Fsq "# Shell Options" "$ZSHRC"; then
+    echo "" >> "$ZSHRC"
+    echo "# Shell Options" >> "$ZSHRC"
+    echo "setopt HIST_IGNORE_ALL_DUPS" >> "$ZSHRC"
+    echo "setopt HIST_FIND_NO_DUPS" >> "$ZSHRC"
+fi
+
 echo "---------------------------------------------------"
 echo "Done: Environment setup completed successfully."
