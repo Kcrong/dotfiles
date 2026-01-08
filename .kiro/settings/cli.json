@@ -1,0 +1,8 @@
+{
+  "chat.defaultModel": "claude-opus-4.5",
+  "chat.enableNotifications": true,
+  "chat.enableThinking": true,
+  "chat.greeting.enabled": false,
+  "codeWhisperer.shareCodeWhispererContentWithAWS": false,
+  "telemetry.enabled": false
+}
