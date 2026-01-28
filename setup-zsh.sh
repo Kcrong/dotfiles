@@ -20,7 +20,7 @@ brew install pure zsh-syntax-highlighting zsh-autosuggestions neovim
 
 # Install Brew Casks
 echo "Progress: Installing Brew Casks..."
-brew install --cask karabiner-elements rectangle iterm2 1password scroll-reverser
+brew install --cask karabiner-elements rectangle iterm2 1password scroll-reverser kiro-cli
 
 # Set Paths and Variables
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
@@ -130,6 +130,14 @@ if ! grep -Fsq "# Neovim Aliases" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Neovim Aliases" >> "$ZSHRC"
     echo "alias vi=\"nvim\"" >> "$ZSHRC"
+fi
+
+# Kiro Cli Aliases
+if ! grep -Fsq "# Kiro Cli Aliases" "$ZSHRC"; then
+    echo "" >> "$ZSHRC"
+    echo "# Kiro Cli Aliases" >> "$ZSHRC"
+    echo "alias tt=\"kiro-cli --agent tutor\"" >> "$ZSHRC"
+    echo "alias trt=\"kiro-cli --agent translator\"" >> "$ZSHRC"
 fi
 
 # Shell options
