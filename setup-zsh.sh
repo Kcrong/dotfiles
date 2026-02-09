@@ -91,6 +91,7 @@ if ! grep -Fsq "# Auto completion" "$ZSHRC"; then
     echo "else" >> "$ZSHRC"
     echo "  compinit -C" >> "$ZSHRC"
     echo "fi" >> "$ZSHRC"
+    echo "zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'" >> "$ZSHRC"
 fi
 
 # GIT plugin source
