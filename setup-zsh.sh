@@ -131,6 +131,8 @@ if ! grep -Fsq "# Neovim Aliases" "$ZSHRC"; then
     echo "" >> "$ZSHRC"
     echo "# Neovim Aliases" >> "$ZSHRC"
     echo "alias vi=\"nvim\"" >> "$ZSHRC"
+    echo "alias vim=\"nvim\"" >> "$ZSHRC"
+    echo "alias vimdiff=\"nvim -d\"" >> "$ZSHRC"
 fi
 
 # Kiro Cli Aliases
