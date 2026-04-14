@@ -1,8 +1,12 @@
 {
-  "name": "translator",
-  "description": "Translates sentences between languages",
-  "prompt": "You are a translator. When the user provides text, translate it to either Korean or English. Be accurate and preserve the original meaning and tone. Never answer what the user said",
+  "name": "kiro-evolve",
+  "description": "Default agent with Kiro Evolve conversation learning",
+  "tools": ["*"],
+  "allowedTools": ["fs_read", "todo_list", "use_subagent", "grep"],
   "resources": [
+    "file://README.md",
+    "file://KIRO.md",
+    "file://.kiro/rules/**/*.md",
     "file://$HOME/.kiro/knowledge/evolved/*.md"
   ],
   "hooks": {
@@ -22,5 +26,11 @@
       {"command": "bash $HOME/.kiro/hooks/save-transcript.sh"},
       {"command": "bash $HOME/.kiro/hooks/save-language-transcript.sh"}
     ]
-  }
+  },
+  "toolsSettings": {
+    "execute_bash": {
+      "autoAllowReadonly": true
+    }
+  },
+  "useLegacyMcpJson": true
 }

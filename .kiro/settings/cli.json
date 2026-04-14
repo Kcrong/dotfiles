@@ -1,16 +1,18 @@
 {
   "app.hideMenubarIcon": true,
+  "chat.defaultAgent": "kiro-evolve",
   "chat.defaultModel": "claude-opus-4.6",
   "chat.disableAutoCompaction": true,
   "chat.enableCheckpoint": true,
   "chat.enableContextUsageIndicator": true,
   "chat.enableKnowledge": true,
   "chat.enableNotifications": true,
+  "chat.enableTangentMode": true,
   "chat.enableThinking": true,
   "chat.greeting.enabled": false,
   "codeWhisperer.shareCodeWhispererContentWithAWS": false,
-  "telemetry.enabled": false,
-  "mcp.loadedBefore": true,
+  "integrations.iterm.disabled": false,
   "knowledge.indexType": "Best",
-  "chat.enableTangentMode": true
+  "mcp.loadedBefore": false,
+  "telemetry.enabled": false
 }

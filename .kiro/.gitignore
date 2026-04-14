@@ -1,0 +1,22 @@
+# Session data (large, machine-generated, ephemeral)
+sessions/
+
+# Transcripts (contain full conversation history)
+transcripts/
+
+# CLI history
+.cli_bash_history
+
+# Runtime files
+argv.json
+
+# Extensions cache
+extensions/
+
+# Powers registry cache
+powers/
+
+# Knowledge base
+knowledge/
+
+

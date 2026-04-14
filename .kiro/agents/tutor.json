@@ -8,8 +8,28 @@
   ],
   "toolAliases": {},
   "allowedTools": [],
-  "resources": [],
-  "hooks": {},
+  "resources": [
+    "file://$HOME/.kiro/knowledge/evolved/*.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      {"command": "bash $HOME/.kiro/hooks/check-review.sh"},
+      {"command": "bash $HOME/.kiro/hooks/check-dream.sh"},
+      {"command": "bash $HOME/.kiro/hooks/check-cleanup.sh"},
+      {"command": "bash $HOME/.kiro/hooks/check-language-review.sh"},
+      {"command": "bash $HOME/.kiro/hooks/check-language-dream.sh"},
+      {"command": "bash $HOME/.kiro/hooks/check-language-cleanup.sh"}
+    ],
+    "userPromptSubmit": [
+      {"command": "bash $HOME/.kiro/hooks/save-transcript.sh"},
+      {"command": "bash $HOME/.kiro/hooks/save-language-transcript.sh"}
+    ],
+    "stop": [
+      {"command": "bash $HOME/.kiro/hooks/save-transcript.sh"},
+      {"command": "bash $HOME/.kiro/hooks/save-language-transcript.sh"}
+    ]
+  },
   "toolsSettings": {},
   "useLegacyMcpJson": false,
+  "model": null
 }
