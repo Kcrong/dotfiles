@@ -1,7 +1,7 @@
 {
   "app.hideMenubarIcon": true,
   "chat.defaultAgent": "kiro-evolve",
-  "chat.defaultModel": "claude-opus-4.6",
+  "chat.defaultModel": "claude-opus-4.7",
   "chat.disableAutoCompaction": true,
   "chat.enableCheckpoint": true,
   "chat.enableContextUsageIndicator": true,
