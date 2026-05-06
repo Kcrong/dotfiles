@@ -85,3 +85,6 @@ hs.hotkey.bind({'cmd', 'alt'}, 'space', function()
 end)
 
 
+
+-- Kiro clipboard translator (Cmd+Shift+C)
+require("kiro_clipboard")
