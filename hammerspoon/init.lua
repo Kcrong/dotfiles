@@ -86,5 +86,40 @@ end)
 
 
 
+-- Window movement: Opt+Cmd + H/J/K/L → move focused window (vim-style)
+-- Hold key to keep moving smoothly.
+local MOVE_STEP = 10           -- pixels per tick
+local MOVE_INTERVAL = 0.016    -- ~60fps
+
+local function moveFocusedWindowBy(dx, dy)
+  local win = hs.window.focusedWindow()
+  if not win then return end
+  local f = win:frame()
+  f.x = f.x + dx
+  f.y = f.y + dy
+  win:setFrame(f)
+end
+
+local function bindMove(key, dx, dy)
+  local timer = nil
+  hs.hotkey.bind({'alt', 'cmd'}, key,
+    function()  -- pressed
+      moveFocusedWindowBy(dx, dy)
+      if timer then timer:stop() end
+      timer = hs.timer.doEvery(MOVE_INTERVAL, function()
+        moveFocusedWindowBy(dx, dy)
+      end)
+    end,
+    function()  -- released
+      if timer then timer:stop(); timer = nil end
+    end
+  )
+end
+
+bindMove('h', -MOVE_STEP, 0)  -- left
+bindMove('j', 0,  MOVE_STEP)  -- down
+bindMove('k', 0, -MOVE_STEP)  -- up
+bindMove('l',  MOVE_STEP, 0)  -- right
+
 -- Kiro clipboard translator (Cmd+Shift+C)
 require("kiro_clipboard")
